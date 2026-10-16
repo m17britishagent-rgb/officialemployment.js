@@ -21,20 +21,31 @@ module.exports = async (req, res) => {
   try {
     const response = await fetch(googleScriptUrl, { 
       redirect: 'follow',
-      headers: { 'Accept': 'application/json' }
+      headers: { 
+        'Accept': 'application/json, text/plain, */*' 
+      }
     });
     
     const rawText = await response.text();
 
-    // Check if Google returned an HTML page instead of JSON
-    if (rawText.trim().startsWith('<')) {
+    // Check if Google returned an HTML page (sign-in page or error page)
+    if (!rawText || rawText.trim().startsWith('<')) {
       return res.status(502).json({
         found: false,
-        error: 'Google Apps Script returned an HTML error page instead of JSON. Ensure deployment permission is set to "Anyone".'
+        error: 'Google Apps Script returned an HTML page instead of JSON. Ensure your deployment permission is set to "Anyone" (even anonymous users).'
       });
     }
 
-    const json = JSON.parse(rawText);
+    let json;
+    try {
+      json = JSON.parse(rawText);
+    } catch (parseError) {
+      return res.status(502).json({
+        found: false,
+        error: 'Failed to parse response from Google Apps Script as JSON.',
+        raw: rawText.substring(0, 200) // Truncate for safety
+      });
+    }
 
     if (json.success && json.data) {
       return res.status(200).json({
@@ -58,7 +69,7 @@ module.exports = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ 
       found: false, 
-      error: 'Failed to parse endpoint response',
+      error: 'Failed to reach Google Apps Script endpoint',
       details: error.message 
     });
   }
