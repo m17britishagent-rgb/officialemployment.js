@@ -40,13 +40,9 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         found: true,
         user: json.data.user || "N/A",
-        reason: json.data.reason || "N/A",
-        status: json.data.status || "N/A",
-        dateIssued: json.data.dateIssued || "N/A",
-        appealStatus: json.data.appealStatus || "N/A",
-        ableToAppeal: json.data.ableToAppeal || "N/A",
-        dateAppealed: json.data.dateAppealed || "N/A",
-        admin: json.data.admin || "N/A"
+        agency: json.data.agency || "N/A",
+        date: json.data.date || "N/A",
+        type: json.data.type || "N/A"
       });
     }
 
