@@ -21,18 +21,16 @@ module.exports = async (req, res) => {
   try {
     const response = await fetch(googleScriptUrl, { 
       redirect: 'follow',
-      headers: { 
-        'Accept': 'application/json, text/plain, */*' 
-      }
+      headers: { 'Accept': 'application/json' }
     });
     
     const rawText = await response.text();
 
-    // Check if Google returned an HTML page (sign-in page or error page)
+    // Check if Google returned an HTML page instead of JSON
     if (!rawText || rawText.trim().startsWith('<')) {
       return res.status(502).json({
         found: false,
-        error: 'Google Apps Script returned an HTML page instead of JSON. Ensure your deployment permission is set to "Anyone" (even anonymous users).'
+        error: 'Google Apps Script returned an HTML page instead of JSON. Ensure deployment permission is set to "Anyone".'
       });
     }
 
@@ -43,22 +41,17 @@ module.exports = async (req, res) => {
       return res.status(502).json({
         found: false,
         error: 'Failed to parse response from Google Apps Script as JSON.',
-        raw: rawText.substring(0, 200) // Truncate for safety
+        raw: rawText.substring(0, 200)
       });
     }
 
-    if (json.success && json.data) {
+    // Check if records exist and return the full array
+    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
       return res.status(200).json({
         found: true,
-        user: json.data.user || "N/A",
-        agency: json.data.agency || "N/A",
-        date: json.data.date || "N/A",
-        type: json.data.type || "N/A"
+        count: json.count || json.data.length,
+        records: json.data // Passes all events back to the client
       });
-    }
-
-    if (json.found !== undefined) {
-      return res.status(200).json(json);
     }
 
     return res.status(200).json({
